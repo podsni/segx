@@ -1,5 +1,6 @@
 import chalk from "chalk";
 import fs from "node:fs/promises";
+import { spawn } from "node:child_process";
 import { confirm, isCancel, log, note, spinner, text } from "@clack/prompts";
 import type { HeaderContext, ScriptEntry } from "./types";
 import { drawLine, formatDateTime } from "./utils";
@@ -63,6 +64,28 @@ const renderExecutionIntro = (total: number, context: HeaderContext): void => {
   );
 };
 
+const spawnProcess = async (command: string[]): Promise<number> => {
+  return new Promise((resolve, reject) => {
+    const [cmd, ...args] = command;
+    if (!cmd) {
+      reject(new Error("Command is required"));
+      return;
+    }
+    
+    const child = spawn(cmd, args, {
+      stdio: "inherit",
+    });
+
+    child.on("close", (code: number | null) => {
+      resolve(code ?? 0);
+    });
+
+    child.on("error", (error: Error) => {
+      reject(error);
+    });
+  });
+};
+
 const executeSingleScript = async (entry: ScriptEntry): Promise<boolean> => {
   const headerLabel = ` MENJALANKAN: ${entry.name.padEnd(30)}`;
   console.log(chalk.bgBlue.white.bold(headerLabel));
@@ -80,14 +103,7 @@ const executeSingleScript = async (entry: ScriptEntry): Promise<boolean> => {
   drawLine(75, "·");
 
   try {
-    const subprocess = Bun.spawn({
-      cmd: command,
-      stdout: "inherit",
-      stderr: "inherit",
-      stdin: "inherit",
-    });
-
-    const exitCode = await subprocess.exited;
+    const exitCode = await spawnProcess(command);
     drawLine(75);
 
     if (exitCode === 0) {
@@ -114,14 +130,7 @@ const checkSudoRequirements = async (entries: ScriptEntry[]): Promise<boolean> =
   spin.start("Meminta akses sudo...");
 
   try {
-    const subprocess = Bun.spawn({
-      cmd: ["sudo", "-v"],
-      stdout: "inherit",
-      stderr: "inherit",
-      stdin: "inherit",
-    });
-
-    const exitCode = await subprocess.exited;
+    const exitCode = await spawnProcess(["sudo", "-v"]);
     if (exitCode !== 0) {
       spin.stop("Gagal memperoleh akses sudo.");
       return false;

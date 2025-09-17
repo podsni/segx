@@ -19,14 +19,16 @@
     ".": "./dist/index.js"
   },
   "files": [
-    "dist"
+    "dist",
+    "VERSION"
   ],
   "scripts": {
     "dev": "bun index.ts",
     "generate:embedded": "bun tools/generate-embedded-scripts.ts",
+    "version:sync": "bun tools/sync-version.ts",
     "build": "bun run generate:embedded && bunx tsup --config tsup.config.ts",
     "check": "bunx tsc --noEmit",
-    "release": "bun run check && bun run build"
+    "release": "bun run version:sync && bun run check && bun run build"
   },
   "keywords": [
     "cli",
