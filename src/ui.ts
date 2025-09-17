@@ -1,6 +1,5 @@
 import chalk from "chalk";
 import {
-  confirm,
   intro,
   isCancel,
   log,
@@ -120,15 +119,18 @@ export const promptCategorySelection = async (
 
 export const promptScriptSelection = async (
   label: string,
-  scripts: ScriptEntry[]
+  scripts: ScriptEntry[],
+  initialSelection: readonly number[] = []
 ): Promise<ScriptSelectionResult> => {
+  const sanitizedInitial = initialSelection.filter((index) => index >= 0 && index < scripts.length);
   const selection = await multiselect<number>({
     message: `Pilih skrip dari ${label}`,
     options: scripts.map((script, index) => ({
       value: index,
       label: script.name,
-      hint: script.description || undefined,
+      hint: combineHints(script),
     })),
+    initialValues: sanitizedInitial,
     required: true,
   });
 
@@ -147,7 +149,7 @@ export const promptScriptSelection = async (
 export const confirmExecution = async (
   scripts: ScriptEntry[],
   selectedIndexes: number[]
-): Promise<"proceed" | "backToSelection"> => {
+): Promise<"proceed" | "backToSelection" | "backToCategory" | "exit"> => {
   const selectedEntries = selectedIndexes
     .map((index) => scripts[index])
     .filter((entry): entry is ScriptEntry => Boolean(entry));
@@ -166,17 +168,43 @@ export const confirmExecution = async (
 
   note(items, "Skrip yang akan dijalankan");
 
-  const confirmation = await confirm({
-    message: "Jalankan skrip yang dipilih sekarang?",
+  const action = await select({
+    message: "Apa langkah selanjutnya?",
+    options: [
+      {
+        value: "run",
+        label: "Jalankan skrip sekarang",
+        hint: "Eksekusi sesuai urutan terpilih",
+      },
+      {
+        value: "reselect",
+        label: "Pilih ulang skrip",
+        hint: "Kembali ke daftar skrip",
+      },
+      {
+        value: "category",
+        label: "Kembali ke menu kategori",
+      },
+      {
+        value: "exit",
+        label: "Keluar dari aplikasi",
+        hint: "Tutup manajer skrip",
+      },
+    ],
+    initialValue: "run",
   });
 
-  if (isCancel(confirmation)) {
+  if (isCancel(action) || action === "reselect") {
+    log.info("Silakan pilih skrip kembali.");
     return "backToSelection";
   }
 
-  if (!confirmation) {
-    log.info("Eksekusi dibatalkan.");
-    return "backToSelection";
+  if (action === "category") {
+    return "backToCategory";
+  }
+
+  if (action === "exit") {
+    return "exit";
   }
 
   return "proceed";
@@ -188,4 +216,15 @@ export const showRandomSelection = (entry: ScriptEntry): void => {
 
 export const showOutro = (): void => {
   outro("Sampai jumpa lagi! ✨");
+};
+
+const combineHints = (script: ScriptEntry): string | undefined => {
+  const hints: string[] = [];
+  if (script.description) {
+    hints.push(script.description);
+  }
+  if (script.needsSudo) {
+    hints.push("Memerlukan sudo");
+  }
+  return hints.length > 0 ? hints.join(" • ") : undefined;
 };

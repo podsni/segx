@@ -92,24 +92,45 @@ const handleCategorySelection = async (
   }
 
   if (selection.kind === "random") {
-    const randomIndex = Math.floor(Math.random() * scriptEntries.length);
-    const randomEntry = scriptEntries[randomIndex]!;
-    showRandomSelection(randomEntry);
+    while (true) {
+      const randomIndex = Math.floor(Math.random() * scriptEntries.length);
+      const randomEntry = scriptEntries[randomIndex]!;
+      showRandomSelection(randomEntry);
 
-    const confirmation = await confirmExecution(scriptEntries, [randomIndex]);
-    if (confirmation === "proceed") {
-      await executeSelectedScripts([randomEntry], headerContext);
+      const confirmation = await confirmExecution(scriptEntries, [randomIndex]);
+
+      if (confirmation === "proceed") {
+        await executeSelectedScripts([randomEntry], headerContext);
+        return false;
+      }
+
+      if (confirmation === "backToCategory") {
+        return false;
+      }
+
+      if (confirmation === "exit") {
+        showOutro();
+        return true;
+      }
+
+      // backToSelection -> pilih ulang skrip random
     }
-
-    return false;
   }
 
+  let previousSelection: number[] = [];
+
   while (true) {
-    const selectionResult = await promptScriptSelection(selection.label, scriptEntries);
+    const selectionResult = await promptScriptSelection(
+      selection.label,
+      scriptEntries,
+      previousSelection
+    );
 
     if (selectionResult.kind === "back") {
       return false;
     }
+
+    previousSelection = [...selectionResult.indexes];
 
     const confirmation = await confirmExecution(scriptEntries, selectionResult.indexes);
 
@@ -119,7 +140,16 @@ const handleCategorySelection = async (
       return false;
     }
 
-    // Otherwise user wants to adjust selection; loop again.
+    if (confirmation === "backToCategory") {
+      return false;
+    }
+
+    if (confirmation === "exit") {
+      showOutro();
+      return true;
+    }
+
+    // Otherwise user wants to menyesuaikan pilihan; ulangi loop
   }
 };
 
