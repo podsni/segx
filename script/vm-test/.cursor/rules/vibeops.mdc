@@ -1,0 +1,11 @@
+---
+description: "Alias of VibeOps – see devops.mdc."
+globs:
+- "**/*"
+alwaysApply: false
+---
+
+This rule aliases `@devops.mdc`.
+
+Usage: invoke `@devops.mdc` or `@vibeops.mdc` with your instruction.
+
