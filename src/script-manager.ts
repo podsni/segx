@@ -1,86 +1,68 @@
 import fs from "node:fs/promises";
+import type { Dirent } from "node:fs";
 import path from "node:path";
-import fg from "fast-glob";
 import type { CategoryInfo, ScriptEntry } from "./types";
 import { formatCategoryName } from "./utils";
 
 const scriptEntryCache = new Map<string, ScriptEntry>();
 
 export const listScriptsInDirectory = async (directory: string): Promise<string[]> => {
-  const scriptPaths = await fg("*.sh", {
-    cwd: directory,
-    absolute: true,
-    onlyFiles: true,
-    unique: true,
-  });
-  return scriptPaths
-    .map((entry) => path.normalize(entry))
-    .sort((a, b) => path.basename(a).localeCompare(path.basename(b), "id-ID"));
+  try {
+    const entries = await fs.readdir(directory, { withFileTypes: true });
+    return entries
+      .filter((entry) => entry.isFile() && entry.name.endsWith(".sh"))
+      .map((entry) => path.join(directory, entry.name))
+      .sort((a, b) => path.basename(a).localeCompare(path.basename(b), "id-ID"));
+  } catch {
+    return [];
+  }
 };
 
 export const collectCategories = async (scriptRoot: string): Promise<CategoryInfo[]> => {
-  const scriptFiles = await fg("**/*.sh", {
-    cwd: scriptRoot,
-    absolute: true,
-    onlyFiles: true,
-    unique: true,
-  });
+  const categories: CategoryInfo[] = [];
 
-  const directoryMap = new Map<
-    string,
-    { dirPath: string; scriptPaths: string[]; segments: string[] }
-  >();
-
-  for (const rawPath of scriptFiles) {
-    const filePath = path.normalize(rawPath);
-    const dirPath = path.dirname(filePath);
-    const relativeDir = path.relative(scriptRoot, dirPath);
-
-    if (!relativeDir) {
-      continue;
-    }
-
-    const segments = relativeDir.split(path.sep).filter(Boolean);
-    if (segments.length === 0) {
-      continue;
-    }
-
-    const categoryId = segments.join("/");
-    const existing = directoryMap.get(categoryId);
-
-    if (existing) {
-      existing.scriptPaths.push(filePath);
-      continue;
-    }
-
-    directoryMap.set(categoryId, {
-      dirPath,
-      scriptPaths: [filePath],
-      segments,
-    });
-  }
-
-  const categories: CategoryInfo[] = Array.from(directoryMap.entries()).map(
-    ([name, info]) => {
-      const sortedScripts = [...info.scriptPaths].sort((a, b) =>
-        path.basename(a).localeCompare(path.basename(b), "id-ID")
-      );
-
-      const displayName = info.segments.map(formatCategoryName).join(" / ");
-
-      return {
-        name,
-        displayName,
-        dirPath: info.dirPath,
-        scriptPaths: sortedScripts,
-        scriptCount: sortedScripts.length,
-        depth: info.segments.length,
-      };
-    }
-  );
+  await walkDirectories(scriptRoot, [], categories);
 
   categories.sort((a, b) => a.name.localeCompare(b.name, "id-ID"));
   return categories;
+};
+
+const walkDirectories = async (
+  currentDir: string,
+  segments: string[],
+  categories: CategoryInfo[]
+): Promise<void> => {
+  let entries: Dirent[];
+  try {
+    entries = await fs.readdir(currentDir, { withFileTypes: true });
+  } catch {
+    return;
+  }
+
+  const fileEntries = entries.filter((entry) => entry.isFile() && entry.name.endsWith(".sh"));
+  const dirEntries = entries.filter((entry) => entry.isDirectory());
+
+  if (fileEntries.length > 0 && segments.length > 0) {
+    const scriptPaths = fileEntries
+      .map((entry) => path.join(currentDir, entry.name))
+      .sort((a, b) => path.basename(a).localeCompare(path.basename(b), "id-ID"));
+
+    const name = segments.join("/");
+    const displayName = segments.map(formatCategoryName).join(" / ");
+
+    categories.push({
+      name,
+      displayName,
+      dirPath: currentDir,
+      scriptPaths,
+      scriptCount: scriptPaths.length,
+      depth: segments.length,
+    });
+  }
+
+  for (const dir of dirEntries) {
+    await walkDirectories(path.join(currentDir, dir.name), [...segments, dir.name], categories);
+  }
 };
 
 export const loadScriptEntries = async (scriptPaths: string[]): Promise<ScriptEntry[]> =>

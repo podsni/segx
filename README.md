@@ -23,7 +23,7 @@ brew install sst/tap/segx
 curl -fsSL https://raw.githubusercontent.com/podsni/segx/main/install.sh | bash
 ```
 
-> Pastikan token publikasi npm (`NPM_TOKEN`) sudah dipasang di GitHub Secret agar workflow rilis dapat mem-publish ke registry.
+> Pastikan token publikasi npm (`NPM_TOKEN`) sudah dipasang di GitHub Secret agar workflow rilis dapat mem-publish ke registry. Saat dijalankan secara global, Segx otomatis menyalin skrip bawaan ke `~/.segx/script` bila direktori belum tersedia.
 
 ## Pengembangan Lokal
 

@@ -4,6 +4,8 @@ export default defineConfig({
   entry: ["index.ts"],
   format: ["esm"],
   splitting: false,
+  bundle: true,
+  noExternal: ["@clack/prompts", "chalk", "fast-glob"],
   sourcemap: true,
   clean: true,
   target: "node18",

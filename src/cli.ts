@@ -1,3 +1,4 @@
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { pathExists } from "./utils";
@@ -14,23 +15,48 @@ import {
 import type { ScriptSelectionResult } from "./ui";
 import type { CategorySelection, HeaderContext, ScriptEntry } from "./types";
 import { executeSelectedScripts } from "./executor";
+import { ensureScriptAssets } from "./asset-manager";
 
 const repoUrl = process.env.MY_SCRIPT_REPO_URL ?? "https://github.com/podsni/segx";
 
 export const runCli = async (): Promise<void> => {
   const __filename = fileURLToPath(import.meta.url);
   const __dirname = path.dirname(__filename);
-  const scriptRoot = path.resolve(__dirname, "..", "script");
-  const installLocation = process.env.MY_SCRIPT_DIR ?? scriptRoot;
+  const envDir = process.env.MY_SCRIPT_DIR?.trim();
+  const packageScriptRoot = path.resolve(__dirname, "..", "script");
+  const userScriptRoot = path.join(os.homedir(), ".segx", "script");
+  const candidateRoots = envDir ? [path.resolve(envDir)] : [packageScriptRoot, userScriptRoot];
+
+  let scriptRoot: string | null = null;
+
+  for (const candidate of candidateRoots) {
+    try {
+      const isPackageCandidate = !envDir && candidate === packageScriptRoot;
+      if (isPackageCandidate && !(await pathExists(candidate))) {
+        // Paket global tidak menyertakan direktori script; gunakan fallback.
+        continue;
+      }
+
+      await ensureScriptAssets(candidate);
+      if (await pathExists(candidate)) {
+        scriptRoot = candidate;
+        break;
+      }
+    } catch (error) {
+      logWarning(`Gagal menyiapkan direktori script di ${candidate}: ${(error as Error).message}`);
+    }
+  }
+
+  if (!scriptRoot) {
+    logError("Direktori script tidak dapat dipersiapkan. Periksa konfigurasi MY_SCRIPT_DIR atau hak akses sistem.");
+    return;
+  }
+
+  const installLocation = scriptRoot;
   const headerContext: HeaderContext = {
     repoUrl,
     installLocation,
   };
-
-  if (!(await pathExists(scriptRoot))) {
-    logError(`Direktori script tidak ditemukan: ${scriptRoot}`);
-    return;
-  }
 
   process.on("SIGINT", () => {
     logWarning("Eksekusi dibatalkan oleh pengguna");
