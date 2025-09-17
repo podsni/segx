@@ -16,6 +16,7 @@ export type CategoryInfo = {
   dirPath: string;
   scriptPaths: string[];
   scriptCount: number;
+  depth: number;
 };
 
 export type CategorySelection =

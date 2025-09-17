@@ -75,8 +75,8 @@ export const promptCategorySelection = async (
   categories.forEach((category) => {
     options.push({
       value: category.name,
-      label: category.displayName,
-      hint: `${category.scriptCount} skrip`,
+      label: formatCategoryLabel(category),
+      hint: buildCategoryHint(category),
     });
   });
 
@@ -227,4 +227,21 @@ const combineHints = (script: ScriptEntry): string | undefined => {
     hints.push("Memerlukan sudo");
   }
   return hints.length > 0 ? hints.join(" • ") : undefined;
+};
+
+const formatCategoryLabel = (category: CategoryInfo): string => {
+  if (category.depth <= 1) {
+    return category.displayName;
+  }
+
+  const indent = "  ".repeat(category.depth - 1);
+  return `${indent}${category.displayName}`;
+};
+
+const buildCategoryHint = (category: CategoryInfo): string => {
+  const parts = [`${category.scriptCount} skrip`];
+  if (category.depth > 1) {
+    parts.push(`Folder: ${category.name}`);
+  }
+  return parts.join(" • ");
 };

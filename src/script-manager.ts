@@ -1,44 +1,85 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import fg from "fast-glob";
 import type { CategoryInfo, ScriptEntry } from "./types";
 import { formatCategoryName } from "./utils";
 
 const scriptEntryCache = new Map<string, ScriptEntry>();
 
 export const listScriptsInDirectory = async (directory: string): Promise<string[]> => {
-  const entries = await fs.readdir(directory, { withFileTypes: true });
-  return entries
-    .filter((entry) => entry.isFile() && entry.name.endsWith(".sh"))
-    .map((entry) => path.join(directory, entry.name))
+  const scriptPaths = await fg("*.sh", {
+    cwd: directory,
+    absolute: true,
+    onlyFiles: true,
+    unique: true,
+  });
+  return scriptPaths
+    .map((entry) => path.normalize(entry))
     .sort((a, b) => path.basename(a).localeCompare(path.basename(b), "id-ID"));
 };
 
 export const collectCategories = async (scriptRoot: string): Promise<CategoryInfo[]> => {
-  const entries = await fs.readdir(scriptRoot, { withFileTypes: true });
-  const categories: CategoryInfo[] = [];
+  const scriptFiles = await fg("**/*.sh", {
+    cwd: scriptRoot,
+    absolute: true,
+    onlyFiles: true,
+    unique: true,
+  });
 
-  for (const entry of entries) {
-    if (!entry.isDirectory()) {
+  const directoryMap = new Map<
+    string,
+    { dirPath: string; scriptPaths: string[]; segments: string[] }
+  >();
+
+  for (const rawPath of scriptFiles) {
+    const filePath = path.normalize(rawPath);
+    const dirPath = path.dirname(filePath);
+    const relativeDir = path.relative(scriptRoot, dirPath);
+
+    if (!relativeDir) {
       continue;
     }
 
-    const dirPath = path.join(scriptRoot, entry.name);
-    const scriptPaths = await listScriptsInDirectory(dirPath);
-
-    if (scriptPaths.length === 0) {
+    const segments = relativeDir.split(path.sep).filter(Boolean);
+    if (segments.length === 0) {
       continue;
     }
 
-    categories.push({
-      name: entry.name,
-      displayName: formatCategoryName(entry.name),
+    const categoryId = segments.join("/");
+    const existing = directoryMap.get(categoryId);
+
+    if (existing) {
+      existing.scriptPaths.push(filePath);
+      continue;
+    }
+
+    directoryMap.set(categoryId, {
       dirPath,
-      scriptPaths,
-      scriptCount: scriptPaths.length,
+      scriptPaths: [filePath],
+      segments,
     });
   }
 
-  categories.sort((a, b) => a.displayName.localeCompare(b.displayName, "id-ID"));
+  const categories: CategoryInfo[] = Array.from(directoryMap.entries()).map(
+    ([name, info]) => {
+      const sortedScripts = [...info.scriptPaths].sort((a, b) =>
+        path.basename(a).localeCompare(path.basename(b), "id-ID")
+      );
+
+      const displayName = info.segments.map(formatCategoryName).join(" / ");
+
+      return {
+        name,
+        displayName,
+        dirPath: info.dirPath,
+        scriptPaths: sortedScripts,
+        scriptCount: sortedScripts.length,
+        depth: info.segments.length,
+      };
+    }
+  );
+
+  categories.sort((a, b) => a.name.localeCompare(b.name, "id-ID"));
   return categories;
 };
 
