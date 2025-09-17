@@ -1,17 +1,56 @@
 {
-  "name": "scrix-beta",
-  "module": "index.ts",
+  "name": "seg",
+  "version": "0.1.0",
+  "description": "Seg CLI untuk mengelola script otomatis dengan antarmuka interaktif",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/podsni/seg.git"
+  },
+  "homepage": "https://github.com/podsni/seg",
+  "bugs": {
+    "url": "https://github.com/podsni/seg/issues"
+  },
   "type": "module",
-  "private": true,
+  "bin": {
+    "seg": "./dist/index.js"
+  },
+  "main": "./dist/index.js",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "dev": "bun index.ts",
+    "build": "bunx tsup --config tsup.config.ts",
+    "check": "bunx tsc --noEmit",
+    "release": "bun run check && bun run build"
+  },
+  "keywords": [
+    "cli",
+    "scripts",
+    "automation"
+  ],
+  "author": "Bangunx",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18",
+    "bun": ">=1.0"
+  },
   "dependencies": {
     "@clack/prompts": "^0.11.0",
     "chalk": "^5.3.0",
     "fast-glob": "^3.3.3"
   },
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "tsup": "^8.5.0"
   },
   "peerDependencies": {
     "typescript": "^5"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
