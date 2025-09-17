@@ -7,12 +7,11 @@ on:
       - published
 
 permissions:
-  contents: read
+  contents: write
   id-token: write
 
 jobs:
   publish:
-    name: Publish to npm
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -35,7 +34,72 @@ jobs:
       - name: Build package
         run: bun run release
 
-      - name: Publish package
-        run: npm publish --provenance --access public
+      - name: Read package metadata
+        id: package_info
+        run: |
+          NAME=$(node -p "require('./package.json').name")
+          VERSION=$(node -p "require('./package.json').version")
+          echo "name=${NAME}" >> "$GITHUB_OUTPUT"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Normalize package.json metadata
+        run: npm pkg fix
+
+      - name: Publish package to npm
+        id: publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          PACKAGE_NAME: ${{ steps.package_info.outputs.name }}
+        run: |
+          set +e
+          npm publish --provenance --access public 2>&1 | tee publish.log
+          status=${PIPESTATUS[0]}
+
+          if [ "$status" -eq 0 ]; then
+            echo "status=success" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if grep -q "E403" publish.log; then
+            echo "::warning::npm publish skipped for ${PACKAGE_NAME}. Pastikan Anda memiliki hak publish atau gunakan nama paket lain." 
+            echo "status=forbidden" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          exit "$status"
+
+      - name: Prepare release artifact
+        run: |
+          ARCHIVE="${{ steps.package_info.outputs.name }}-${{ steps.package_info.outputs.version }}.tar.gz"
+          tar -czf "$ARCHIVE" dist
+          echo "ARCHIVE_NAME=$ARCHIVE" >> "$GITHUB_ENV"
+
+      - name: Upload dist to GitHub Release
+        if: github.event_name == 'release'
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ${{ env.ARCHIVE_NAME }}
+          asset_name: ${{ env.ARCHIVE_NAME }}
+          asset_content_type: application/gzip
+
+      - name: Release summary
+        run: |
+          if [ "${{ steps.publish.outputs.status }}" = "forbidden" ]; then
+            {
+              echo "### npm publish"
+              echo "- Status: ⚠️ Dilewati (403 Forbidden)"
+              echo "- Paket: ${{ steps.package_info.outputs.name }}"
+              echo "- Saran: Pastikan akun npm Anda memiliki akses atau gunakan nama paket yang berbeda."
+            } >> "$GITHUB_STEP_SUMMARY"
+          elif [ "${{ steps.publish.outputs.status }}" = "success" ]; then
+            {
+              echo "### npm publish"
+              echo "- Status: ✅ Berhasil"
+              echo "- Paket: ${{ steps.package_info.outputs.name }}@${{ steps.package_info.outputs.version }}"
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "### npm publish" >> "$GITHUB_STEP_SUMMARY"
+          fi
