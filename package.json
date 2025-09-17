@@ -1,6 +1,6 @@
 {
   "name": "segx",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Segx CLI untuk mengelola script otomatis dengan antarmuka interaktif",
   "repository": {
     "type": "git",
