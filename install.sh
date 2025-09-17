@@ -2,10 +2,10 @@
 set -euo pipefail
 
 # Konfigurasi dapat dioverride via variabel lingkungan (contoh: SEG_PACKAGE_NAME=my-cli)
-PACKAGE_NAME="${SEG_PACKAGE_NAME:-seg}"
-BUN_FALLBACK_PACKAGE="${SEG_BUN_FALLBACK:-seg-bin}"
-BREW_FORMULA="${SEG_BREW_FORMULA:-sst/tap/seg}"
-POST_INSTALL_NOTE="${SEG_POST_INSTALL_NOTE:-Selesai! Jalankan 'seg' dari terminal kapan saja.}"
+PACKAGE_NAME="${SEG_PACKAGE_NAME:-segx}"
+BUN_FALLBACK_PACKAGE="${SEG_BUN_FALLBACK:-segx-bin}"
+BREW_FORMULA="${SEG_BREW_FORMULA:-sst/tap/segx}"
+POST_INSTALL_NOTE="${SEG_POST_INSTALL_NOTE:-Selesai! Jalankan 'segx' dari terminal kapan saja.}"
 
 info() {
   printf '\033[1;34m[info]\033[0m %s\n' "$1"

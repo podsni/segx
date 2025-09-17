@@ -15,7 +15,7 @@ import type { ScriptSelectionResult } from "./ui";
 import type { CategorySelection, HeaderContext, ScriptEntry } from "./types";
 import { executeSelectedScripts } from "./executor";
 
-const repoUrl = process.env.MY_SCRIPT_REPO_URL ?? "https://github.com/podsni/seg";
+const repoUrl = process.env.MY_SCRIPT_REPO_URL ?? "https://github.com/podsni/segx";
 
 export const runCli = async (): Promise<void> => {
   const __filename = fileURLToPath(import.meta.url);

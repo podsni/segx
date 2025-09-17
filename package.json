@@ -1,18 +1,18 @@
 {
-  "name": "seg",
+  "name": "segx",
   "version": "0.1.0",
-  "description": "Seg CLI untuk mengelola script otomatis dengan antarmuka interaktif",
+  "description": "Segx CLI untuk mengelola script otomatis dengan antarmuka interaktif",
   "repository": {
     "type": "git",
-    "url": "https://github.com/podsni/seg.git"
+    "url": "https://github.com/podsni/segx.git"
   },
-  "homepage": "https://github.com/podsni/seg",
+  "homepage": "https://github.com/podsni/segx",
   "bugs": {
-    "url": "https://github.com/podsni/seg/issues"
+    "url": "https://github.com/podsni/segx/issues"
   },
   "type": "module",
   "bin": {
-    "seg": "./dist/index.js"
+    "segx": "./dist/index.js"
   },
   "main": "./dist/index.js",
   "exports": {

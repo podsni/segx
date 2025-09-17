@@ -1,26 +1,26 @@
-# seg
+# segx
 
-Seg adalah CLI interaktif untuk menavigasi, memilih, dan menjalankan sekumpulan shell script dengan pengalaman yang rapi dan cepat. Tool ini dibangun di atas Bun dan TypeScript, tetapi dapat dijalankan dari mana saja setelah dipaketkan ke npm.
+Segx adalah CLI interaktif untuk menavigasi, memilih, dan menjalankan sekumpulan shell script dengan pengalaman yang rapi dan cepat. Tool ini dibangun di atas Bun dan TypeScript, tetapi dapat dijalankan dari mana saja setelah dipaketkan ke npm.
 
 ## Instalasi Cepat
 
-Pilih salah satu metode distribusi berikut (semuanya menyiapkan perintah global `seg`):
+Pilih salah satu metode distribusi berikut (semuanya menyiapkan perintah global `segx`):
 
 ```bash
 # npm
-npm install -g seg
+npm install -g segx
 
 # Bun (paket utama)
-bun install -g seg
+bun install -g segx
 
 # Bun (opsi fallback binary)
-bun install -g seg-bin
+bun install -g segx-bin
 
 # Homebrew (formula kustom)
-brew install sst/tap/seg
+brew install sst/tap/segx
 
-# Skrip curl (repositori resmi podsni/seg)
-curl -fsSL https://raw.githubusercontent.com/podsni/seg/main/install.sh | bash
+# Skrip curl (repositori resmi podsni/segx)
+curl -fsSL https://raw.githubusercontent.com/podsni/segx/main/install.sh | bash
 ```
 
 > Pastikan token publikasi npm (`NPM_TOKEN`) sudah dipasang di GitHub Secret agar workflow rilis dapat mem-publish ke registry.
@@ -43,14 +43,14 @@ bun run check
 
 ## Variabel Lingkungan
 - `MY_SCRIPT_DIR`: ganti lokasi direktori script (default `./script`).
-- `MY_SCRIPT_REPO_URL`: URL repositori yang ditampilkan pada header antarmuka (default `https://github.com/podsni/seg`).
-- `SEG_PACKAGE_NAME`, `SEG_BUN_FALLBACK`, `SEG_BREW_FORMULA`, `SEG_POST_INSTALL_NOTE`: override dinamis untuk skrip `install.sh` bila Anda melakukan fork/clone dan ingin mengganti identitas paket tanpa mengedit file.
+- `MY_SCRIPT_REPO_URL`: URL repositori yang ditampilkan pada header antarmuka (default `https://github.com/podsni/segx`).
+- `SEG_PACKAGE_NAME`, `SEG_BUN_FALLBACK`, `SEG_BREW_FORMULA`, `SEG_POST_INSTALL_NOTE`: override dinamis untuk skrip `install.sh` bila Anda melakukan fork/clone dan ingin mengganti identitas paket tanpa mengedit file (default ke identitas `segx`).
 
 Contoh menjalankan CLI dengan konfigurasi khusus:
 
 ```bash
 MY_SCRIPT_DIR=/opt/scripts \
-MY_SCRIPT_REPO_URL=https://github.com/podsni/seg \
+MY_SCRIPT_REPO_URL=https://github.com/podsni/segx \
 bun run dev
 ```
 
@@ -70,4 +70,4 @@ Repositori ini menyertakan workflow GitHub Actions (`.github/workflows/release.y
 
 Workflow dipicu saat rilis GitHub dipublikasikan atau dijalankan secara manual (`workflow_dispatch`). Jangan lupa menambahkan secret `NPM_TOKEN` dengan hak publish ke registry npm Anda.
 
-Selamat menggunakan Seg! 🎉
+Selamat menggunakan Segx! 🎉
