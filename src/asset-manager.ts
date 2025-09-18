@@ -16,16 +16,15 @@ export const ensureScriptAssets = async (scriptRoot: string): Promise<void> => {
     await fs.mkdir(directory, { recursive: true });
     const exists = await pathExists(targetPath);
 
-    if (!exists) {
+    const writeContent = async (): Promise<void> => {
       await fs.writeFile(targetPath, asset.content, "utf8");
-
       if (targetPath.endsWith(".sh")) {
         await fs.chmod(targetPath, 0o755);
       }
-      continue;
-    }
+    };
 
-    if (!targetPath.endsWith(".sh")) {
+    if (!exists) {
+      await writeContent();
       continue;
     }
 
@@ -37,8 +36,7 @@ export const ensureScriptAssets = async (scriptRoot: string): Promise<void> => {
 
       const backupPath = `${targetPath}.backup`;
       await fs.copyFile(targetPath, backupPath);
-      await fs.writeFile(targetPath, asset.content, "utf8");
-      await fs.chmod(targetPath, 0o755);
+      await writeContent();
     } catch (error) {
       console.warn(`Gagal menyelaraskan skrip bawaan di ${targetPath}: ${(error as Error).message}`);
     }

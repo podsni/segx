@@ -56,8 +56,22 @@ jobs:
       - name: Normalize package.json metadata
         run: npm pkg fix
 
+      - name: Check npm availability
+        id: npm_check
+        env:
+          PACKAGE_NAME: ${{ steps.package_info.outputs.name }}
+          PACKAGE_VERSION: ${{ steps.package_info.outputs.version }}
+        run: |
+          if npm view "${PACKAGE_NAME}@${PACKAGE_VERSION}" version >/dev/null 2>&1; then
+            echo "status=exists" >> "$GITHUB_OUTPUT"
+            echo "Version ${PACKAGE_VERSION} sudah ada di npm, melewati publish."
+          else
+            echo "status=missing" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Publish package to npm
         id: publish
+        if: steps.npm_check.outputs.status != 'exists'
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           PACKAGE_NAME: ${{ steps.package_info.outputs.name }}
@@ -110,6 +124,19 @@ jobs:
             ${{ env.ARCHIVE_NAME }}
             ${{ env.BINARY_ARCHIVE }}
 
+      - name: Publish GitHub Release (manual trigger)
+        if: github.event_name == 'workflow_dispatch'
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ steps.package_info.outputs.version }}
+          name: segx v${{ steps.package_info.outputs.version }}
+          files: |
+            ${{ env.ARCHIVE_NAME }}
+            ${{ env.BINARY_ARCHIVE }}
+          generate_release_notes: true
+
       - name: Release summary
         run: |
           if [ "${{ steps.publish.outputs.status }}" = "forbidden" ]; then
@@ -128,6 +155,31 @@ jobs:
               echo "### Release Assets"
               echo "- dist: ${{ env.ARCHIVE_NAME }}"
               echo "- binary: segx-linux-x64.tar.gz"
+              echo ""
+              echo "### Cara Instal (opsi)"
+              echo "- npm: npm install -g segx"
+              echo "- bun: bun install -g segx"
+              echo "- bun fallback: bun install -g segx-bin"
+              echo "- homebrew: brew install sst/tap/segx"
+              echo "- curl: curl -fsSL https://raw.githubusercontent.com/podsni/segx/main/install.sh | bash"
+            } >> "$GITHUB_STEP_SUMMARY"
+          elif [ "${{ steps.npm_check.outputs.status }}" = "exists" ]; then
+            {
+              echo "### npm publish"
+              echo "- Status: ℹ️ Dilewati (versi sudah ada)"
+              echo "- Paket: ${{ steps.package_info.outputs.name }}@${{ steps.package_info.outputs.version }}"
+              echo "- Catatan: Tidak ada versi baru untuk dipublish."
+              echo ""
+              echo "### Release Assets"
+              echo "- dist: ${{ env.ARCHIVE_NAME }}"
+              echo "- binary: segx-linux-x64.tar.gz"
+              echo ""
+              echo "### Cara Instal (opsi)"
+              echo "- npm: npm install -g segx"
+              echo "- bun: bun install -g segx"
+              echo "- bun fallback: bun install -g segx-bin"
+              echo "- homebrew: brew install sst/tap/segx"
+              echo "- curl: curl -fsSL https://raw.githubusercontent.com/podsni/segx/main/install.sh | bash"
             } >> "$GITHUB_STEP_SUMMARY"
           else
             echo "### npm publish" >> "$GITHUB_STEP_SUMMARY"
