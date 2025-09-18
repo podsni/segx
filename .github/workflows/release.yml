@@ -42,6 +42,17 @@ jobs:
           echo "name=${NAME}" >> "$GITHUB_OUTPUT"
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
 
+      - name: Compile standalone binary
+        run: bun build ./dist/index.js --compile --outfile segx-linux-x64
+
+      - name: Package release artifacts
+        run: |
+          ARCHIVE="${{ steps.package_info.outputs.name }}-${{ steps.package_info.outputs.version }}.tar.gz"
+          tar -czf "$ARCHIVE" dist
+          tar -czf segx-linux-x64.tar.gz segx-linux-x64
+          echo "ARCHIVE_NAME=$ARCHIVE" >> "$GITHUB_ENV"
+          echo "BINARY_ARCHIVE=segx-linux-x64.tar.gz" >> "$GITHUB_ENV"
+
       - name: Normalize package.json metadata
         run: npm pkg fix
 
@@ -68,12 +79,6 @@ jobs:
 
           exit "$status"
 
-      - name: Prepare release artifact
-        run: |
-          ARCHIVE="${{ steps.package_info.outputs.name }}-${{ steps.package_info.outputs.version }}.tar.gz"
-          tar -czf "$ARCHIVE" dist
-          echo "ARCHIVE_NAME=$ARCHIVE" >> "$GITHUB_ENV"
-
       - name: Upload dist to GitHub Release
         if: github.event_name == 'release'
         uses: actions/upload-release-asset@v1
@@ -84,6 +89,26 @@ jobs:
           asset_path: ${{ env.ARCHIVE_NAME }}
           asset_name: ${{ env.ARCHIVE_NAME }}
           asset_content_type: application/gzip
+
+      - name: Upload binary to GitHub Release
+        if: github.event_name == 'release'
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ${{ env.BINARY_ARCHIVE }}
+          asset_name: segx-linux-x64.tar.gz
+          asset_content_type: application/gzip
+
+      - name: Upload artifacts to workflow run
+        if: github.event_name != 'release'
+        uses: actions/upload-artifact@v4
+        with:
+          name: segx-release-assets
+          path: |
+            ${{ env.ARCHIVE_NAME }}
+            ${{ env.BINARY_ARCHIVE }}
 
       - name: Release summary
         run: |
@@ -99,6 +124,10 @@ jobs:
               echo "### npm publish"
               echo "- Status: ✅ Berhasil"
               echo "- Paket: ${{ steps.package_info.outputs.name }}@${{ steps.package_info.outputs.version }}"
+              echo ""
+              echo "### Release Assets"
+              echo "- dist: ${{ env.ARCHIVE_NAME }}"
+              echo "- binary: segx-linux-x64.tar.gz"
             } >> "$GITHUB_STEP_SUMMARY"
           else
             echo "### npm publish" >> "$GITHUB_STEP_SUMMARY"
